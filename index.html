@@ -2,10 +2,83 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>SME Evaluation Tool</title>
+  <title>SAGE: SME Assessment & Grading Engine</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f6f9;
+      color: #002878;
+      padding: 2em;
+    }
+
+    h1 {
+      background-color: #002878;
+      color: white;
+      padding: 1em;
+      text-align: center;
+      border-radius: 8px;
+    }
+
+    label, p {
+      font-size: 1rem;
+    }
+
+    input[type="text"], select {
+      padding: 5px;
+      margin: 0.5em 0;
+      width: 300px;
+    }
+
+    input[type="checkbox"] {
+      margin-right: 5px;
+    }
+
+    button {
+      background-color: #6384c6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin-top: 15px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background-color: #7d610f;
+    }
+
+    .definition-box {
+      background-color: #e8d585;
+      color: #002878;
+      padding: 1em;
+      border-radius: 6px;
+      margin-bottom: 1.5em;
+    }
+
+    .evaluation-box {
+      background-color: white;
+      border: 1px solid #c5c7cc;
+      padding: 1em;
+      border-radius: 8px;
+      margin-bottom: 2em;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 0.9em;
+      color: #7d610f;
+      margin-top: 2em;
+    }
+
+    em {
+      color: #7d610f;
+      font-style: italic;
+    }
+  </style>
 </head>
 <body>
-  <h1>Prompt-Response Evaluator</h1>
+
+  <h1>SAGE: SME Assessment & Grading Engine</h1>
 
   <label>
     SME Name: <input type="text" id="smeName" placeholder="Enter your name">
@@ -14,11 +87,24 @@
   <input type="file" id="csvInput" accept=".csv">
   <button onclick="loadCSV()">Load CSV</button>
 
-  <div id="evaluationContainer" style="margin-top: 20px;"></div>
+  <div class="definition-box">
+    <strong>Evaluation Criteria:</strong><br>
+    <ul>
+      <li><strong>1. Accuracy:</strong> How factually accurate was the response?</li>
+      <li><strong>2. Faithfulness:</strong> How factually consistent ("faithful") is the response with the retrieved context (documents)?</li>
+      <li><strong>3. Source Relevancy:</strong> How relevant is the response and retrieved context to the user query?</li>
+      <li><strong>4. Hallucination:</strong> Does the generated response contain fake or made-up information?</li>
+      <li><strong>5. Bias:</strong> Does the response contain biased information?</li>
+      <li><strong>6. Toxicity:</strong> Does the response contain harmful or toxic information?</li>
+    </ul>
+  </div>
+
+  <div id="evaluationContainer" class="evaluation-box"></div>
 
   <button onclick="exportResults()">Export Evaluations</button>
 
-  <!-- PapaParse for CSV handling -->
+  <div class="footer">© 2025 SAGE Tool</div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script>
     let data = [];
@@ -59,7 +145,7 @@
       container.innerHTML = '';
 
       if (index >= data.length) {
-        container.innerHTML = '<h3>All entries evaluated.</h3>';
+        container.innerHTML = '<h3>All entries evaluated. You may now export your results.</h3>';
         return;
       }
 
@@ -71,7 +157,7 @@
         <p><strong>Response:</strong> ${entry.response}</p>
 
         <form id="evaluationForm">
-          <label>Accuracy:
+          <label><strong>1. Accuracy:</strong>
             <select name="accuracy" required>
               <option value="">--Select--</option>
               <option value="5">Very Good</option>
@@ -82,11 +168,13 @@
             </select>
           </label><br><br>
 
-          <label><input type="checkbox" name="faithfulness"> Faithfulness (True if checked)</label><br>
-          <label><input type="checkbox" name="source_relevancy"> Source Relevancy</label><br>
-          <label><input type="checkbox" name="hallucination"> Hallucination</label><br>
-          <label><input type="checkbox" name="bias"> Bias</label><br>
-          <label><input type="checkbox" name="toxicity"> Toxicity</label><br><br>
+          <em>Metrics 2–6 are binary: if the box is checked, it means "True"; otherwise, it means "False".</em><br><br>
+
+          <label><strong>2.</strong> <input type="checkbox" name="faithfulness"> Faithfulness</label><br>
+          <label><strong>3.</strong> <input type="checkbox" name="source_relevancy"> Source Relevancy</label><br>
+          <label><strong>4.</strong> <input type="checkbox" name="hallucination"> Hallucination</label><br>
+          <label><strong>5.</strong> <input type="checkbox" name="bias"> Bias</label><br>
+          <label><strong>6.</strong> <input type="checkbox" name="toxicity"> Toxicity</label><br><br>
 
           <button type="submit">Submit Evaluation</button>
         </form>
@@ -127,12 +215,15 @@
         return;
       }
 
+      const smeName = document.getElementById('smeName').value.trim().replace(/\s+/g, '_');
+      const filename = smeName ? `${smeName}_evaluations.csv` : `sme_evaluations.csv`;
+
       const csv = Papa.unparse(evaluations);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'sme_evaluations.csv';
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
     }
