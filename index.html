@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SME Evaluation Tool</title>
+</head>
+<body>
+  <h1>Prompt-Response Evaluator</h1>
+
+  <label>
+    SME Name: <input type="text" id="smeName" placeholder="Enter your name">
+  </label><br><br>
+
+  <input type="file" id="csvInput" accept=".csv">
+  <button onclick="loadCSV()">Load CSV</button>
+
+  <div id="evaluationContainer" style="margin-top: 20px;"></div>
+
+  <button onclick="exportResults()">Export Evaluations</button>
+
+  <!-- PapaParse for CSV handling -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script>
+    let data = [];
+    let currentIndex = 0;
+    let evaluations = [];
+
+    function loadCSV() {
+      const file = document.getElementById('csvInput').files[0];
+      if (!file) {
+        alert("Please select a CSV file.");
+        return;
+      }
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          data = results.data.filter(row =>
+            row.id?.toString().trim() !== '' &&
+            row.prompt?.toString().trim() !== '' &&
+            row.response?.toString().trim() !== ''
+          );
+
+          if (data.length === 0) {
+            alert("No valid data found in CSV.");
+            return;
+          }
+
+          currentIndex = 0;
+          evaluations = [];
+          showEntry(currentIndex);
+        }
+      });
+    }
+
+    function showEntry(index) {
+      const container = document.getElementById('evaluationContainer');
+      container.innerHTML = '';
+
+      if (index >= data.length) {
+        container.innerHTML = '<h3>All entries evaluated.</h3>';
+        return;
+      }
+
+      const entry = data[index];
+
+      const formHtml = `
+        <h3>Entry ${index + 1} of ${data.length}</h3>
+        <p><strong>Prompt:</strong> ${entry.prompt}</p>
+        <p><strong>Response:</strong> ${entry.response}</p>
+
+        <form id="evaluationForm">
+          <label>Accuracy:
+            <select name="accuracy" required>
+              <option value="">--Select--</option>
+              <option value="5">Very Good</option>
+              <option value="4">Good</option>
+              <option value="3">Fair</option>
+              <option value="2">Poor</option>
+              <option value="1">Very Poor</option>
+            </select>
+          </label><br><br>
+
+          <label><input type="checkbox" name="faithfulness"> Faithfulness (True if checked)</label><br>
+          <label><input type="checkbox" name="source_relevancy"> Source Relevancy</label><br>
+          <label><input type="checkbox" name="hallucination"> Hallucination</label><br>
+          <label><input type="checkbox" name="bias"> Bias</label><br>
+          <label><input type="checkbox" name="toxicity"> Toxicity</label><br><br>
+
+          <button type="submit">Submit Evaluation</button>
+        </form>
+      `;
+
+      container.innerHTML = formHtml;
+
+      document.getElementById('evaluationForm').onsubmit = function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const smeName = document.getElementById('smeName').value.trim();
+        if (!smeName) {
+          alert("Please enter SME name.");
+          return;
+        }
+
+        evaluations.push({
+          sme_name: smeName,
+          id: entry.id,
+          prompt: entry.prompt,
+          response: entry.response,
+          accuracy: form.accuracy.value,
+          faithfulness: form.faithfulness.checked,
+          source_relevancy: form.source_relevancy.checked,
+          hallucination: form.hallucination.checked,
+          bias: form.bias.checked,
+          toxicity: form.toxicity.checked
+        });
+
+        currentIndex++;
+        showEntry(currentIndex);
+      };
+    }
+
+    function exportResults() {
+      if (evaluations.length === 0) {
+        alert("No evaluations to export.");
+        return;
+      }
+
+      const csv = Papa.unparse(evaluations);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'sme_evaluations.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
